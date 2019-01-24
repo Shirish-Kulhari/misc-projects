@@ -17,4 +17,7 @@ Another example: [[[1,2,3],[4,5,6]],[[7,8,9],[10,11,12]]]  OR
 So [4,5,6] is slice 0, row 1, and [7,10] is slice 1, column 0.
 
 Now dimension 0 is NOT the row, but the slice. The way the elements are stored is: (1)(2)(3)...(10)(11)(12). From the first element (1), to increment dimension 0 index (i.e. to get to the next slice), we have to traverse 6 elements or 12 bytes. Similarly, stride size for dimensions 1 and 2 are 6 and 2 respectively.
+-=-=-=-=-=-=-=-=-=-=-
+Look up: numpy array size broadcasting
+
 """
