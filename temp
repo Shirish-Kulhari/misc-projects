@@ -1,0 +1,148 @@
+import scipy.io
+import scipy.optimize as opt
+import numpy as np
+
+data = scipy.io.loadmat('ex4data1.mat')
+X, y = data['X'], data['y'].flatten()
+
+# Load the weights into variables Theta1 and Theta2
+weights = scipy.io.loadmat('ex4weights.mat')
+Theta1, Theta2 = weights['Theta1'], weights['Theta2']
+
+# Unroll parameters
+nn_params = np.hstack((Theta1.flatten(), Theta2.flatten()))
+
+# Weight regularization parameter (we set this to 0 here)
+lbd = 0
+input_layer_size = 400    # 20 x 20 input images of digits
+hidden_layer_size = 25    # 25 hidden units
+num_labels = 10    # 10 labels
+
+-=-=-=-
+def encode_labels(y):
+    # Implementation specific to this problem (digit recognition)
+    y_act = np.zeros(( len(y), num_labels ))
+    y_act[np.arange(len(y)), y-1] = 1
+    return y_act
+    
+def g(z, type='sigmoid', deriv=False):
+    # Activation function. 'type' is the type of activation function
+    # and is one of : 'sigmoid' (default value)
+    if(type=='sigmoid'):
+        if(deriv==False):
+            return 1/(1+np.exp(-z))
+        else:
+            return np.exp(-z)/((1+np.exp(-z))**2)
+
+-=-=-=
+
+def nn_cost_function(nn_params, input_layer_size, hidden_layer_size, num_labels, X, y, lbd):
+    # Basic NN cost function. Scope of improvement: support more hidden layers - right now 
+    # only one hidden layer is hard-coded; specify different activation functions for 
+    # different layers
+    theta_1 = nn_params[:(input_layer_size+1)*hidden_layer_size].reshape((hidden_layer_size , input_layer_size+1))
+    theta_2 = nn_params[(input_layer_size+1)*hidden_layer_size:].reshape((num_labels , hidden_layer_size+1))
+
+    # Forward propagation
+    a_1 = np.hstack(( np.ones((len(X),1)) , X ))    # Add a bias column to X
+    a_2 = np.hstack(( np.ones((len(X),1)) , g(a_1 @ theta_1.T) ))
+    a_3 = g(a_2 @ theta_2.T)
+
+    # Encode labels as actual output vectors
+    # r-th row of y_act is the output vector corresponding to r-th sample
+    y_act = encode_labels(y)
+
+    # Calculate cost
+    reg_term = (lbd/(2*len(X)))*( np.sum((theta_1[:,1:]**2)) + np.sum((theta_2[:,1:]**2)) )
+    return (- np.einsum('ij,ij', y_act, np.log(a_3)) - np.einsum('ij,ij', 1-y_act, np.log(1-a_3)))/len(X) + reg_term
+
+def nn_gradient(nn_params, input_layer_size, hidden_layer_size, num_labels, X, y, lbd):
+    # Basic NN cost function. Scope of improvement: support more hidden layers - right now 
+    # only one hidden layer is hard-coded; specify different activation functions for 
+    # different layers
+    theta_1 = nn_params[:(input_layer_size+1)*hidden_layer_size].reshape((hidden_layer_size , input_layer_size+1))
+    theta_2 = nn_params[(input_layer_size+1)*hidden_layer_size:].reshape((num_labels , hidden_layer_size+1))
+    
+    # Forward propagation
+    a_1 = np.hstack(( np.ones((len(X),1)) , X ))    # Add a bias column to X
+    z_2 = a_1 @ theta_1.T
+    a_2 = np.hstack(( np.ones((len(X),1)) , g(z_2) ))
+    z_3 = a_2 @ theta_2.T
+    a_3 = g(z_3)
+    
+    # Encode labels as actual output vectors
+    # r-th row of y_act is the output vector corresponding to r-th sample
+    y_act = encode_labels(y)
+    
+    # Backward propagation
+    d_3 = (a_3 - y_act)/len(X)
+    d_2 = (d_3 @ theta_2) * g(z_2, deriv=True)
+    
+    theta_1[:,0], theta_2[:,0] = 0, 0
+    
+    grad_2 = (d_3.T @ a_2) + (lbd*theta_2)/m
+    grad_1 = (d_2.T @ a_1) + (lbd*theta_1)/m
+    
+    return np.hstack(( grad_1.flatten(), grad_2.flatten() ))
+    
+-=-=-=
+
+J = nn_cost_function(nn_params, input_layer_size, hidden_layer_size, num_labels, X, y, lbd)
+print('Cost at parameters (loaded from ex4weights):', J)
+print('(this value should be about 0.287629)')
+
+-=-=
+
+print('Checking Cost Function (w/ Regularization) ...')
+lbd = 1
+
+J = nn_cost_function(nn_params, input_layer_size, hidden_layer_size, num_labels, X, y, lbd)
+print('Cost at parameters (loaded from ex4weights):', J)
+print('(this value should be about 0.383770)')
+
+-=-=-
+print('Evaluating sigmoid gradient...')
+print('Sigmoid gradient evaluated at [-1 -0.5 0 0.5 1]')
+print(g(np.array([-1,-0.5,0,0.5,1]), deriv=True))
+
+def randInitializeWeights(start_nodes, end_nodes, epsilon):
+    # Used to initialize weight matrix for layer l which has
+    # start_nodes no. of nodes, and where end_nodes is the
+    # no. of nodes in layer l+1
+    return np.random.rand(end_nodes, start_nodes+1)*(2*epsilon) - epsilon
+    
+init_theta1 = randInitializeWeights(input_layer_size, hidden_layer_size, 0.01)
+init_theta2 = randInitializeWeights(hidden_layer_size, num_labels, 0.01)
+nn_params = np.hstack((init_theta1.flatten(), init_theta2.flatten()))
+
+grad = nn_gradient(nn_params, input_layer_size, hidden_layer_size, num_labels, X, y, lbd)
+
+def debugInitializeWeights(start_nodes, end_nodes):
+    n = (start_nodes+1) * end_nodes
+    return np.sin(np.array(range(1,n+1))).reshape(( end_nodes, start_nodes+1 ), order='f') / 10
+    
+def numerical_grad(J, theta):
+    
+    
+-=-=-=
+
+def checkGradients(lbd):
+    input_layer_size = 3
+    hidden_layer_size = 5
+    num_labels = 3
+    m = 5
+    
+    Theta1 = debugInitializeWeights(input_layer_size, hidden_layer_size)
+    Theta2 = debugInitializeWeights(hidden_layer_size, num_labels)
+    
+    X = debugInitializeWeights(m, input_layer_size - 1)
+    y = 1 + np.mod( np.array(range(1,m+1)), num_labels )
+    
+    nn_params = np.hstack((Theta1.flatten(), Theta2.flatten()))
+    
+    cost = nn_cost_function(nn_params, input_layer_size, hidden_layer_size, num_labels, X, y, lbd)
+    grad = nn_gradient(nn_params, input_layer_size, hidden_layer_size, num_labels, X, y, lbd)
+    
+    numgrad = numerical_grad()
+    
+-=-=-=
